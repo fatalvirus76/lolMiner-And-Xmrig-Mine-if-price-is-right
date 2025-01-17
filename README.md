@@ -18,5 +18,5 @@ You can install the required Python package (requests) using:
 pip install requests
 
 Programmet hämtar aktuella timpriset och kollar det regelbundet, om priset är mindre än det
-du ställt in i programmet så böejar lolMiner och Xmrig att mina, går priset över stannar
+du ställt in i programmet så börjar lolMiner och Xmrig att mina, går priset över stannar
 dom automatisk och börjar igen när priset är rätt
