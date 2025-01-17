@@ -15,21 +15,30 @@ class MinerGUI:
         self.root = root
         self.root.title("xmrig Controller")
 
+        # Initialize variables
         self.program_path = tk.StringVar(value="/home/anonymous/Programs/xmrig-6.21.3/xmrig")
         self.algo = tk.StringVar(value="randomx")
         self.pool = tk.StringVar(value="stratum+tcp://randomxmonero.auto.nicehash.com:9200")
         self.user = tk.StringVar(value="38bj4uu8uDsnC5NjoeGb8TMviBCEtMiaet.CPU0")
         self.threads = tk.StringVar(value="10")
+        self.api_worker_id = tk.StringVar(value="")
+        self.api_id = tk.StringVar(value="")
+        self.http_host = tk.StringVar(value="127.0.0.1")
+        self.http_port = tk.StringVar(value="0")  # Default 0 means disabled
+        self.http_access_token = tk.StringVar(value="")
+        self.http_no_restricted = tk.BooleanVar(value=False)
         self.region = tk.StringVar(value="SE3")
         self.custom_price = tk.StringVar(value="")
         self.start_mining_price = tk.DoubleVar(value=0)  # Default is 0 SEK/kWh
-        self.poll_interval = 300
+        self.poll_interval = 300  # Poll interval in seconds
         self.program_process = None
         self.polling = False
 
+        # Create GUI widgets
         self.create_widgets()
 
     def create_widgets(self):
+        # GUI Layout
         tk.Label(self.root, text="Path to xmrig:").grid(row=0, column=0, sticky="w")
         tk.Entry(self.root, textvariable=self.program_path, width=50).grid(row=0, column=1)
         tk.Button(self.root, text="Browse", command=self.browse_program_path).grid(row=0, column=2)
@@ -55,12 +64,29 @@ class MinerGUI:
         tk.Label(self.root, text="Start Mining When Price is Under (SEK/kWh):").grid(row=7, column=0, sticky="w")
         tk.Entry(self.root, textvariable=self.start_mining_price).grid(row=7, column=1)
 
-        tk.Button(self.root, text="Start", command=self.start_polling).grid(row=8, column=0)
-        tk.Button(self.root, text="Stop", command=self.stop_polling).grid(row=8, column=1)
+        tk.Label(self.root, text="API Worker ID:").grid(row=8, column=0, sticky="w")
+        tk.Entry(self.root, textvariable=self.api_worker_id).grid(row=8, column=1)
 
-        tk.Label(self.root, text="Debug Output:").grid(row=9, column=0, sticky="nw")
+        tk.Label(self.root, text="API Instance ID:").grid(row=9, column=0, sticky="w")
+        tk.Entry(self.root, textvariable=self.api_id).grid(row=9, column=1)
+
+        tk.Label(self.root, text="HTTP Host:").grid(row=10, column=0, sticky="w")
+        tk.Entry(self.root, textvariable=self.http_host).grid(row=10, column=1)
+
+        tk.Label(self.root, text="HTTP Port:").grid(row=11, column=0, sticky="w")
+        tk.Entry(self.root, textvariable=self.http_port).grid(row=11, column=1)
+
+        tk.Label(self.root, text="HTTP Access Token:").grid(row=12, column=0, sticky="w")
+        tk.Entry(self.root, textvariable=self.http_access_token).grid(row=12, column=1)
+
+        tk.Checkbutton(self.root, text="Enable Full Remote Access", variable=self.http_no_restricted).grid(row=13, column=0, sticky="w")
+
+        tk.Button(self.root, text="Start", command=self.start_polling).grid(row=14, column=0)
+        tk.Button(self.root, text="Stop", command=self.stop_polling).grid(row=14, column=1)
+
+        tk.Label(self.root, text="Debug Output:").grid(row=15, column=0, sticky="nw")
         self.debug_output = tk.Text(self.root, height=10, width=80, state="disabled")
-        self.debug_output.grid(row=10, column=0, columnspan=3, sticky="w")
+        self.debug_output.grid(row=16, column=0, columnspan=3, sticky="w")
 
     def browse_program_path(self):
         path = filedialog.askopenfilename(title="Select xmrig executable")
@@ -142,8 +168,15 @@ class MinerGUI:
             "-a", self.algo.get(),
             "-o", self.pool.get(),
             "-u", self.user.get(),
-            "--threads", self.threads.get()
+            "--threads", self.threads.get(),
+            "--api-worker-id", self.api_worker_id.get(),
+            "--api-id", self.api_id.get(),
+            "--http-host", self.http_host.get(),
+            "--http-port", self.http_port.get(),
+            "--http-access-token", self.http_access_token.get()
         ]
+        if self.http_no_restricted.get():
+            command.append("--http-no-restricted")
         self.program_process = subprocess.Popen(command)
         self.log_debug("xmrig started.")
 
@@ -158,3 +191,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = MinerGUI(root)
     root.mainloop()
+
