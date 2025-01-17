@@ -1,4 +1,4 @@
-lolMiner_negative_price.py & xmrig_negative_price.py needs to fullowinf
+lolMiner_negative_price.py & xmrig_negative_price.py needs the following packages
 
 Python Packages:
 requests - For making API requests to fetch electricity prices.
