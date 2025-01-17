@@ -1,4 +1,4 @@
-lolMiner_negative_price.py & xmrig_negative_price.py needs the following packages
+lolMiner_negative_price.py & xmrig_negative_price.py &  t-rex_negative_price.py needs the following packages
 
 Python Packages:
 requests - For making API requests to fetch electricity prices.
@@ -11,6 +11,8 @@ threading - For running the polling function in the background.
 System Requirements:
 Python 3.x (Recommended: Python 3.8 or later)
 XMRig installed on your system.
+T-Rex installed on your system
+lolMiner installed on your system
 Installing Python Dependencies:
 
 You can install the required Python package (requests) using:
