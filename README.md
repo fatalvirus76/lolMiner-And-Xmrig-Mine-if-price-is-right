@@ -19,4 +19,4 @@ pip install requests
 
 Programmet hämtar aktuella timpriset och kollar det regelbundet, om priset är mindre än det
 du ställt in i programmet så böejar lolMiner och Xmrig att mina, går priset över stannar
-dom automatisk och böejat igen när priset är rätt
+dom automatisk och börjar igen när priset är rätt
