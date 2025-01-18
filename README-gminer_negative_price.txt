@@ -29,3 +29,6 @@ https://github.com/develsoftware/gminerrelease/releases
 https://github.com/develsoftware/GMinerRelease/releases/download/3.44/gminer_3_44_linux64.tar.xz
 
 chmod +x ./miner
+
+Programmet laddar ner elpriserna och så kan du ställe in vilket pris det måste vara under för miningen
+med gminer ska starta , sen när priset går över slutar den mina, man kan ställa in elområde SE1,SE2,SE3 och SE4
