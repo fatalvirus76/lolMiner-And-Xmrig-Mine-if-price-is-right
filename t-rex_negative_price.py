@@ -2,9 +2,9 @@ import requests
 import subprocess
 import time
 from datetime import datetime, timezone, timedelta
+import pytz
 import tkinter as tk
-from tkinter import messagebox
-from tkinter import filedialog
+from tkinter import ttk, messagebox, filedialog
 from threading import Thread
 
 # Base API URL
@@ -14,13 +14,20 @@ class MinerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("T-Rex Miner Controller")
+        self.root.geometry("880x720")
 
-        self.program_path = tk.StringVar(value="/home/anonymous/egen-kod/t-rex/t-rex")
+        # Add a themed style
+        style = ttk.Style()
+        style.theme_use("clam")  # Use a modern theme like 'clam'
+        style.configure("TButton", padding=6, relief="flat", background="#4472C4", foreground="white")
+        style.configure("TLabel", font=("Arial", 10), padding=5)
+
+        self.program_path = tk.StringVar(value="./t-rex")
         self.algo = tk.StringVar(value="kawpow")
         self.pool = tk.StringVar(value="stratum+tcp://kawpow.auto.nicehash.com:9200")
-        self.user = tk.StringVar(value="your_wallet_address")
+        self.user = tk.StringVar(value="38bj4uu8uDsnC5NjoeGb8TMviBCEtMiaet")
         self.password = tk.StringVar(value="x")
-        self.worker = tk.StringVar(value="worker1")
+        self.worker = tk.StringVar(value="GPU0")
         self.api_bind = tk.StringVar(value="0.0.0.0:4067")
         self.region = tk.StringVar(value="SE3")
         self.custom_price = tk.StringVar(value="")
@@ -32,50 +39,67 @@ class MinerGUI:
         self.create_widgets()
 
     def create_widgets(self):
-        tk.Label(self.root, text="Path to T-Rex:").grid(row=0, column=0, sticky="w")
-        tk.Entry(self.root, textvariable=self.program_path, width=50).grid(row=0, column=1)
-        tk.Button(self.root, text="Browse", command=self.browse_program_path).grid(row=0, column=2)
+        main_frame = ttk.Frame(self.root, padding="10")
+        main_frame.grid(row=0, column=0, sticky="nsew")
 
+        # Configure grid weights
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
 
-        tk.Label(self.root, text="Algorithm:").grid(row=1, column=0, sticky="w")
+        ttk.Label(main_frame, text="Path to T-Rex:").grid(row=0, column=0, sticky="w")
+        path_entry = ttk.Entry(main_frame, textvariable=self.program_path, width=50)
+        path_entry.grid(row=0, column=1, padx=5)
+        ttk.Button(main_frame, text="Browse", command=self.browse_program_path).grid(row=0, column=2, padx=5)
+
+        ttk.Label(main_frame, text="Algorithm:").grid(row=1, column=0, sticky="w")
         algo_options = [
             "autolykos2", "blake3", "etchash", "ethash", "firopow", "kawpow",
             "mtp", "mtp-tcr", "multi", "octopus", "progpow", "progpow-veil",
             "progpow-veriblock", "progpowz", "tensority"
         ]
-        tk.OptionMenu(self.root, self.algo, *algo_options).grid(row=1, column=1, sticky="w")
-     
+        ttk.OptionMenu(main_frame, self.algo, self.algo.get(), *algo_options).grid(row=1, column=1, sticky="w", padx=5)
 
-        tk.Label(self.root, text="Pool:").grid(row=2, column=0, sticky="w")
-        tk.Entry(self.root, textvariable=self.pool, width=50).grid(row=2, column=1, columnspan=2)
+        ttk.Label(main_frame, text="Pool:").grid(row=2, column=0, sticky="w")
+        pool_options = [
+            "stratum+tcp://autolykos.auto.nicehash.com:9200",
+            "stratum+tcp://alephium.auto.nicehash.com:9200",
+            "stratum+tcp://etchash.auto.nicehash.com:9200",
+            "stratum+tcp://kawpow.auto.nicehash.com:9200",
+            "stratum+tcp://octopus.auto.nicehash.com:9200",
+            "stratum+tcp://rvn.2miners.com:6060"
+        ]
+        pool_dropdown = ttk.Combobox(main_frame, textvariable=self.pool, values=pool_options, width=47)
+        pool_dropdown.grid(row=2, column=1, padx=5, sticky="w")
+        pool_dropdown.bind("<KeyRelease>", lambda event: self.pool.set(pool_dropdown.get()))
 
-        tk.Label(self.root, text="User:").grid(row=3, column=0, sticky="w")
-        tk.Entry(self.root, textvariable=self.user, width=50).grid(row=3, column=1, columnspan=2)
+        ttk.Label(main_frame, text="User:").grid(row=3, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.user, width=50).grid(row=3, column=1, columnspan=2, padx=5)
 
-        tk.Label(self.root, text="Password:").grid(row=4, column=0, sticky="w")
-        tk.Entry(self.root, textvariable=self.password).grid(row=4, column=1)
+        ttk.Label(main_frame, text="Password:").grid(row=4, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.password, show="*", width=50).grid(row=4, column=1, padx=5)
 
-        tk.Label(self.root, text="Worker Name:").grid(row=5, column=0, sticky="w")
-        tk.Entry(self.root, textvariable=self.worker).grid(row=5, column=1)
+        ttk.Label(main_frame, text="Worker Name:").grid(row=5, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.worker, width=50).grid(row=5, column=1, padx=5)
 
-        tk.Label(self.root, text="API Bind Address:").grid(row=6, column=0, sticky="w")
-        tk.Entry(self.root, textvariable=self.api_bind).grid(row=6, column=1)
+        ttk.Label(main_frame, text="API Bind Address:").grid(row=6, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.api_bind, width=50).grid(row=6, column=1, padx=5)
 
-        tk.Label(self.root, text="Region:").grid(row=7, column=0, sticky="w")
-        tk.OptionMenu(self.root, self.region, "SE1", "SE2", "SE3", "SE4").grid(row=7, column=1, sticky="w")
+        ttk.Label(main_frame, text="Region:").grid(row=7, column=0, sticky="w")
+        ttk.OptionMenu(main_frame, self.region, self.region.get(), "SE1", "SE2", "SE3", "SE4").grid(row=7, column=1, sticky="w", padx=5)
 
-        tk.Label(self.root, text="Custom Price (SEK/kWh):").grid(row=8, column=0, sticky="w")
-        tk.Entry(self.root, textvariable=self.custom_price).grid(row=8, column=1)
+        ttk.Label(main_frame, text="Custom Price (SEK/kWh):").grid(row=8, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.custom_price, width=50).grid(row=8, column=1, padx=5)
 
-        tk.Label(self.root, text="Start Mining When Price is Under (SEK/kWh):").grid(row=9, column=0, sticky="w")
-        tk.Entry(self.root, textvariable=self.start_mining_price).grid(row=9, column=1)
+        ttk.Label(main_frame, text="Start Mining When Price is Under (SEK/kWh):").grid(row=9, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.start_mining_price, width=50).grid(row=9, column=1, padx=5)
 
-        tk.Button(self.root, text="Start", command=self.start_polling).grid(row=10, column=0)
-        tk.Button(self.root, text="Stop", command=self.stop_polling).grid(row=10, column=1)
+        ttk.Button(main_frame, text="Start", command=self.start_polling).grid(row=10, column=0, pady=10)
+        ttk.Button(main_frame, text="Stop", command=self.stop_polling).grid(row=10, column=1, pady=10)
+        ttk.Button(main_frame, text="Quit", command=self.quit_application).grid(row=10, column=2, pady=10)
 
-        tk.Label(self.root, text="Debug Output:").grid(row=11, column=0, sticky="nw")
-        self.debug_output = tk.Text(self.root, height=10, width=80, state="disabled")
-        self.debug_output.grid(row=12, column=0, columnspan=3, sticky="w")
+        ttk.Label(main_frame, text="Debug Output:").grid(row=11, column=0, sticky="nw")
+        self.debug_output = tk.Text(main_frame, height=15, width=85, state="normal", bg="#F0F0F0", fg="black")
+        self.debug_output.grid(row=12, column=0, columnspan=3, sticky="w", pady=10)
 
     def browse_program_path(self):
         path = filedialog.askopenfilename(title="Select T-Rex executable")
@@ -85,7 +109,7 @@ class MinerGUI:
     def log_debug(self, message):
         self.debug_output.configure(state="normal")
         self.debug_output.insert(tk.END, f"{message}\n")
-        self.debug_output.configure(state="disabled")
+        self.debug_output.configure(state="normal")  # Ensure the text box stays editable
         self.debug_output.see(tk.END)
 
     def fetch_prices(self, api_url):
@@ -105,12 +129,19 @@ class MinerGUI:
             except ValueError:
                 self.log_debug("Invalid custom price entered. Using API data instead.")
 
-        current_time = datetime.now(timezone.utc) + timedelta(hours=1)
+        # Get current Sweden local time
+        sweden_tz = pytz.timezone("Europe/Stockholm")
+        current_time_sweden = datetime.now(sweden_tz)
+
         for price_entry in prices:
             start_time = datetime.fromisoformat(price_entry["time_start"])
             end_time = datetime.fromisoformat(price_entry["time_end"])
-            if start_time <= current_time < end_time:
+            start_time = start_time.astimezone(sweden_tz)
+            end_time = end_time.astimezone(sweden_tz)
+
+            if start_time <= current_time_sweden < end_time:
                 return price_entry["SEK_per_kWh"]
+
         return None
 
     def start_polling(self):
@@ -148,9 +179,11 @@ class MinerGUI:
             self.log_debug("Failed to fetch price data.")
 
     def get_api_url(self):
-        now = datetime.now()
-        year = now.year
-        month_day = now.strftime("%m-%d")
+        # Get current Sweden local date
+        sweden_tz = pytz.timezone("Europe/Stockholm")
+        current_time_sweden = datetime.now(sweden_tz)
+        year = current_time_sweden.year
+        month_day = current_time_sweden.strftime("%m-%d")
         return BASE_API_URL.format(year=year, month_day=month_day, region=self.region.get())
 
     def start_miner(self):
@@ -181,6 +214,10 @@ class MinerGUI:
             self.log_debug("Miner stopped.")
         else:
             self.log_debug("Miner is not running.")
+
+    def quit_application(self):
+        self.stop_polling()
+        self.root.quit()
 
 if __name__ == "__main__":
     root = tk.Tk()
