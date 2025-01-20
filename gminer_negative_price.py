@@ -13,16 +13,23 @@ class MinerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("GMiner Controller")
-        self.root.geometry("800x600")
+        self.root.geometry("900x700")
         self.root.configure(bg="#2d2d2d")
 
-        # Add a themed style
+        # Skapa menyrad
+        self.create_menu()
+
+        # Tkinter-stil
         style = ttk.Style()
         style.theme_use("clam")
-        style.configure("TButton", padding=6, relief="flat", background="#4472C4", foreground="white")
-        style.configure("TLabel", font=("Arial", 10), padding=5)
+        style.configure("TFrame", background="#2d2d2d")
+        style.configure("TLabel", background="#2d2d2d", foreground="#ffffff", font=("Arial", 10), padding=5)
+        style.configure("TButton", padding=6, relief="flat", background="#4472C4", foreground="white", font=("Arial", 10, "bold"))
+        style.map("TButton", background=[("active", "#0052cc")])
 
-        # Initialize variables
+
+
+        # Init-variabler
         self.program_path = tk.StringVar(value="./miner")
         self.algo = tk.StringVar(value="kawpow")
         self.server = tk.StringVar(value="kawpow.auto.nicehash.com:9200")
@@ -36,6 +43,7 @@ class MinerGUI:
         self.program_process = None
         self.polling = False
 
+        # Lista över tillgängliga algoritmer
         self.algorithms = [
             "zil", "vds", "equihash144_5", "equihash125_4", "beamhash", "equihash210_9",
             "cuckoo29", "cuckatoo32", "eth", "etc", "cortex", "kawpow", "sero", "firo",
@@ -44,51 +52,107 @@ class MinerGUI:
             "octopus+kheavyhash", "octopus+sha512_256d", "octopus+ironfish",
             "autolykos2+kheavyhash", "autolykos2+sha512_256d", "sha512_256d", "ironfish", "karlsenhash"
         ]
-        
-        # Create GUI widgets
+
+        # Variabel för att visa aktuellt elpris (i stor etikett)
+        self.current_price_text = tk.StringVar(value="N/A")
+
+        # Skapa GUI
         self.create_widgets()
+
+    def create_menu(self):
+        """Skapar en enkel menyrad (Arkiv -> Avsluta)."""
+        menubar = tk.Menu(self.root)
+        file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu.add_command(label="Avsluta", command=self.root.quit)
+        menubar.add_cascade(label="Arkiv", menu=file_menu)
+        self.root.config(menu=menubar)
 
     def create_widgets(self):
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
 
+        # Gör att fönstret kan expandera
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
 
-        ttk.Label(main_frame, text="Path to GMiner:").grid(row=0, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.program_path, width=40).grid(row=0, column=1, padx=5)
-        ttk.Button(main_frame, text="Browse", command=self.browse_program_path).grid(row=0, column=2, padx=5)
+        # 1) Stor rubrik
+        title_label = ttk.Label(
+            main_frame,
+            text="GMiner Controller",
+            font=("Arial", 16, "bold"),
+            foreground="#FFD700"  # Valfri färg på texten, guld t.ex.
+        )
+        title_label.grid(row=0, column=0, columnspan=3, pady=(0, 15), sticky="w")
 
-        ttk.Label(main_frame, text="Algorithm:").grid(row=1, column=0, sticky="w")
-        ttk.OptionMenu(main_frame, self.algo, self.algo.get(), *self.algorithms).grid(row=1, column=1, padx=5, sticky="w")
+        # 2) Stor etikett för nuvarande elpris
+        self.current_price_label = tk.Label(
+            main_frame,
+            textvariable=self.current_price_text,
+            font=("Arial", 14, "bold"),
+            width=25,
+            bg="#808080",  # utgångsläge (grå)
+            fg="#ffffff",
+            relief="groove",
+            bd=2
+        )
+        self.current_price_label.grid(row=1, column=0, columnspan=3, pady=(0, 15))
 
-        ttk.Label(main_frame, text="Server:").grid(row=2, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.server, width=40).grid(row=2, column=1, padx=5, sticky="w")
+        row_index = 2
 
-        ttk.Label(main_frame, text="User:").grid(row=3, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.user, width=40).grid(row=3, column=1, padx=5, sticky="w")
+        ttk.Label(main_frame, text="Path to GMiner:").grid(row=row_index, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.program_path, width=40).grid(row=row_index, column=1, padx=5)
+        ttk.Button(main_frame, text="Browse", command=self.browse_program_path).grid(row=row_index, column=2, padx=5)
+        row_index += 1
 
-        ttk.Label(main_frame, text="Password:").grid(row=4, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.password, width=40).grid(row=4, column=1, padx=5, sticky="w")
+        ttk.Label(main_frame, text="Algorithm:").grid(row=row_index, column=0, sticky="w")
+        algo_menu = ttk.OptionMenu(main_frame, self.algo, self.algo.get(), *self.algorithms)
+        algo_menu.configure(width=30)
+        algo_menu.grid(row=row_index, column=1, padx=5, sticky="w")
+        row_index += 1
 
-        ttk.Label(main_frame, text="Region:").grid(row=5, column=0, sticky="w")
-        ttk.OptionMenu(main_frame, self.region, self.region.get(), "SE1", "SE2", "SE3", "SE4").grid(row=5, column=1, padx=5, sticky="w")
+        ttk.Label(main_frame, text="Server:").grid(row=row_index, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.server, width=40).grid(row=row_index, column=1, padx=5, sticky="w")
+        row_index += 1
 
-        ttk.Label(main_frame, text="Custom Price (SEK/kWh):").grid(row=6, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.custom_price, width=15).grid(row=6, column=1, padx=5, sticky="w")
+        ttk.Label(main_frame, text="User:").grid(row=row_index, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.user, width=40).grid(row=row_index, column=1, padx=5, sticky="w")
+        row_index += 1
 
-        ttk.Label(main_frame, text="Start Mining Price (SEK/kWh):").grid(row=7, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.start_mining_price, width=15).grid(row=7, column=1, padx=5, sticky="w")
+        ttk.Label(main_frame, text="Password:").grid(row=row_index, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.password, width=40).grid(row=row_index, column=1, padx=5, sticky="w")
+        row_index += 1
 
-        ttk.Label(main_frame, text="API Bind:").grid(row=8, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.api_bind, width=20).grid(row=8, column=1, padx=5, sticky="w")
+        ttk.Label(main_frame, text="Region:").grid(row=row_index, column=0, sticky="w")
+        ttk.OptionMenu(main_frame, self.region, self.region.get(), "SE1", "SE2", "SE3", "SE4").grid(row=row_index, column=1, padx=5, sticky="w")
+        row_index += 1
 
-        tk.Button(main_frame, text="Start", command=self.start_polling, bg="#4caf50", fg="#ffffff").grid(row=10, column=0, pady=10)
-        tk.Button(main_frame, text="Stop", command=self.stop_polling, bg="#f44336", fg="#ffffff").grid(row=10, column=1, pady=10)
+        ttk.Label(main_frame, text="Custom Price (SEK/kWh):").grid(row=row_index, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.custom_price, width=15).grid(row=row_index, column=1, padx=5, sticky="w")
+        row_index += 1
 
-        ttk.Label(main_frame, text="Debug Output:").grid(row=11, column=0, sticky="nw")
+        ttk.Label(main_frame, text="Start Mining Price (SEK/kWh):").grid(row=row_index, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.start_mining_price, width=15).grid(row=row_index, column=1, padx=5, sticky="w")
+        row_index += 1
+
+        ttk.Label(main_frame, text="API Bind:").grid(row=row_index, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.api_bind, width=20).grid(row=row_index, column=1, padx=5, sticky="w")
+        row_index += 1
+
+        # Knappar för start/stopp
+        tk.Button(main_frame, text="Start", command=self.start_polling, bg="#4caf50", fg="#ffffff").grid(row=row_index, column=0, pady=10)
+        tk.Button(main_frame, text="Stop", command=self.stop_polling, bg="#f44336", fg="#ffffff").grid(row=row_index, column=1, pady=10)
+        row_index += 1
+
+        # Debug Output
+        ttk.Label(main_frame, text="Debug Output:").grid(row=row_index, column=0, sticky="nw")
+        row_index += 1
+
         self.debug_output = tk.Text(main_frame, height=10, width=70, state="normal", bg="#F0F0F0", fg="black")
-        self.debug_output.grid(row=12, column=0, columnspan=3, sticky="w", pady=10)
+        self.debug_output.grid(row=row_index, column=0, columnspan=3, sticky="w", pady=10)
+
+    def create_row(self, *args, **kwargs):
+        """(Valfritt) Hjälpfunktion om du vill bygga rader. Ej används just nu."""
+        pass
 
     def browse_program_path(self):
         path = filedialog.askopenfilename(title="Select GMiner executable")
@@ -149,7 +213,6 @@ class MinerGUI:
             end_time = datetime.fromisoformat(price_entry["time_end"]).astimezone(sweden_tz)
             if start_time <= current_time_sweden < end_time:
                 return price_entry.get("SEK_per_kWh", None)
-
         return None
 
     def check_and_start_miner(self):
@@ -160,10 +223,35 @@ class MinerGUI:
             current_price = self.get_current_hour_price(prices)
             if current_price is not None:
                 self.log_debug(f"Current price: {current_price} SEK/kWh")
+                # Uppdatera stor etikett
+                self.update_current_price_label(current_price)
+
                 if current_price < self.start_mining_price.get():
                     self.start_miner()
                 else:
                     self.stop_miner()
+            else:
+                self.log_debug("No price found for the current hour.")
+                self.update_current_price_label(None)
+        else:
+            self.log_debug("Failed to fetch price data.")
+            self.update_current_price_label(None)
+
+    def update_current_price_label(self, current_price):
+        """Uppdaterar den stora etiketten med aktuellt elpris, samt färgkod."""
+        if current_price is None:
+            self.current_price_text.set("N/A")
+            self.current_price_label.configure(bg="#808080")  # Grå
+            return
+
+        self.current_price_text.set(f"{current_price:.2f} SEK/kWh")
+
+        if current_price < self.start_mining_price.get():
+            # Grön bakgrund om under tröskel
+            self.current_price_label.configure(bg="#77dd77")
+        else:
+            # Röd bakgrund om över tröskel
+            self.current_price_label.configure(bg="#FF6961")
 
     def start_miner(self):
         if self.program_process:
@@ -176,6 +264,10 @@ class MinerGUI:
             "-u", self.user.get(),
             "--api", self.api_bind.get()
         ]
+        # Lägg till lösenord om ifyllt
+        if self.password.get():
+            command += ["-p", self.password.get()]
+
         try:
             self.program_process = subprocess.Popen(command)
             self.log_debug(f"GMiner started with command: {' '.join(command)}")
