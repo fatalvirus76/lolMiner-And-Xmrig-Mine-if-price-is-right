@@ -1,4 +1,3 @@
-import requests
 import subprocess
 import time
 from datetime import datetime, timezone, timedelta
@@ -6,6 +5,7 @@ import pytz
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from threading import Thread
+import requests  # We will use requests for fetching price data
 
 # Base API URL
 BASE_API_URL = "https://www.elprisetjustnu.se/api/v1/prices/{year}/{month_day}_{region}.json"
@@ -14,11 +14,11 @@ class MinerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("T-Rex Miner Controller")
-        self.root.geometry("880x720")
+        self.root.geometry("850x700")
 
         # Add a themed style
         style = ttk.Style()
-        style.theme_use("clam")  # Use a modern theme like 'clam'
+        style.theme_use("clam")
         style.configure("TButton", padding=6, relief="flat", background="#4472C4", foreground="white")
         style.configure("TLabel", font=("Arial", 10), padding=5)
 
@@ -42,64 +42,57 @@ class MinerGUI:
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
 
-        # Configure grid weights
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
 
-        ttk.Label(main_frame, text="Path to T-Rex:").grid(row=0, column=0, sticky="w")
-        path_entry = ttk.Entry(main_frame, textvariable=self.program_path, width=50)
-        path_entry.grid(row=0, column=1, padx=5)
-        ttk.Button(main_frame, text="Browse", command=self.browse_program_path).grid(row=0, column=2, padx=5)
-
-        ttk.Label(main_frame, text="Algorithm:").grid(row=1, column=0, sticky="w")
-        algo_options = [
+        # Create rows for each input field
+        self.create_row(main_frame, "Path to T-Rex:", self.program_path, row=0, browse=True)
+        self.create_row(main_frame, "Algorithm:", self.algo, row=1, dropdown=[
             "autolykos2", "blake3", "etchash", "ethash", "firopow", "kawpow",
             "mtp", "mtp-tcr", "multi", "octopus", "progpow", "progpow-veil",
             "progpow-veriblock", "progpowz", "tensority"
-        ]
-        ttk.OptionMenu(main_frame, self.algo, self.algo.get(), *algo_options).grid(row=1, column=1, sticky="w", padx=5)
-
-        ttk.Label(main_frame, text="Pool:").grid(row=2, column=0, sticky="w")
-        pool_options = [
+        ])
+        self.create_row(main_frame, "Pool:", self.pool, row=2, combobox=True, dropdown=[
             "stratum+tcp://autolykos.auto.nicehash.com:9200",
             "stratum+tcp://alephium.auto.nicehash.com:9200",
             "stratum+tcp://etchash.auto.nicehash.com:9200",
             "stratum+tcp://kawpow.auto.nicehash.com:9200",
             "stratum+tcp://octopus.auto.nicehash.com:9200",
             "stratum+tcp://rvn.2miners.com:6060"
-        ]
-        pool_dropdown = ttk.Combobox(main_frame, textvariable=self.pool, values=pool_options, width=47)
-        pool_dropdown.grid(row=2, column=1, padx=5, sticky="w")
-        pool_dropdown.bind("<KeyRelease>", lambda event: self.pool.set(pool_dropdown.get()))
+        ])
+        self.create_row(main_frame, "User:", self.user, row=3)
+        self.create_row(main_frame, "Password:", self.password, row=4, hidden=True)
+        self.create_row(main_frame, "Worker Name:", self.worker, row=5)
+        self.create_row(main_frame, "API Bind Address:", self.api_bind, row=6)
+        self.create_row(main_frame, "Region:", self.region, row=7, dropdown=["SE1", "SE2", "SE3", "SE4"])
+        self.create_row(main_frame, "Custom Price (SEK/kWh):", self.custom_price, row=8)
+        self.create_row(main_frame, "Start Mining When Price is Under (SEK/kWh):", self.start_mining_price, row=9)
 
-        ttk.Label(main_frame, text="User:").grid(row=3, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.user, width=50).grid(row=3, column=1, columnspan=2, padx=5)
+        # Start and Stop buttons
+        tk.Button(main_frame, text="Start", command=self.start_polling, bg="#4caf50", fg="#ffffff").grid(row=10, column=0, pady=10)
+        tk.Button(main_frame, text="Stop", command=self.stop_polling, bg="#f44336", fg="#ffffff").grid(row=10, column=1, pady=10)
 
-        ttk.Label(main_frame, text="Password:").grid(row=4, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.password, show="*", width=50).grid(row=4, column=1, padx=5)
-
-        ttk.Label(main_frame, text="Worker Name:").grid(row=5, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.worker, width=50).grid(row=5, column=1, padx=5)
-
-        ttk.Label(main_frame, text="API Bind Address:").grid(row=6, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.api_bind, width=50).grid(row=6, column=1, padx=5)
-
-        ttk.Label(main_frame, text="Region:").grid(row=7, column=0, sticky="w")
-        ttk.OptionMenu(main_frame, self.region, self.region.get(), "SE1", "SE2", "SE3", "SE4").grid(row=7, column=1, sticky="w", padx=5)
-
-        ttk.Label(main_frame, text="Custom Price (SEK/kWh):").grid(row=8, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.custom_price, width=50).grid(row=8, column=1, padx=5)
-
-        ttk.Label(main_frame, text="Start Mining When Price is Under (SEK/kWh):").grid(row=9, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.start_mining_price, width=50).grid(row=9, column=1, padx=5)
-
-        ttk.Button(main_frame, text="Start", command=self.start_polling).grid(row=10, column=0, pady=10)
-        ttk.Button(main_frame, text="Stop", command=self.stop_polling).grid(row=10, column=1, pady=10)
-        ttk.Button(main_frame, text="Quit", command=self.quit_application).grid(row=10, column=2, pady=10)
-
+        # Debug Output
         ttk.Label(main_frame, text="Debug Output:").grid(row=11, column=0, sticky="nw")
         self.debug_output = tk.Text(main_frame, height=15, width=85, state="normal", bg="#F0F0F0", fg="black")
         self.debug_output.grid(row=12, column=0, columnspan=3, sticky="w", pady=10)
+
+    def create_row(self, frame, label_text, variable, row, browse=False, combobox=False, dropdown=None, hidden=False):
+        ttk.Label(frame, text=label_text).grid(row=row, column=0, sticky="w")
+        if combobox:
+            widget = ttk.Combobox(frame, textvariable=variable, values=dropdown, width=50)
+            widget.grid(row=row, column=1, padx=5)
+            widget.set(variable.get())  # Set the default value
+        elif browse:
+            entry = ttk.Entry(frame, textvariable=variable, width=50)
+            entry.grid(row=row, column=1, padx=5)
+            ttk.Button(frame, text="Browse", command=lambda: self.browse_program_path()).grid(row=row, column=2, padx=5)
+        elif hidden:
+            entry = ttk.Entry(frame, textvariable=variable, show="*", width=50)
+            entry.grid(row=row, column=1, padx=5)
+        else:
+            entry = ttk.Entry(frame, textvariable=variable, width=50)
+            entry.grid(row=row, column=1, padx=5)
 
     def browse_program_path(self):
         path = filedialog.askopenfilename(title="Select T-Rex executable")
@@ -109,9 +102,10 @@ class MinerGUI:
     def log_debug(self, message):
         self.debug_output.configure(state="normal")
         self.debug_output.insert(tk.END, f"{message}\n")
-        self.debug_output.configure(state="normal")  # Ensure the text box stays editable
+        self.debug_output.configure(state="normal")
         self.debug_output.see(tk.END)
 
+    # Fetch price from the API in the same way as before
     def fetch_prices(self, api_url):
         try:
             response = requests.get(api_url)
@@ -129,7 +123,6 @@ class MinerGUI:
             except ValueError:
                 self.log_debug("Invalid custom price entered. Using API data instead.")
 
-        # Get current Sweden local time
         sweden_tz = pytz.timezone("Europe/Stockholm")
         current_time_sweden = datetime.now(sweden_tz)
 
@@ -179,7 +172,6 @@ class MinerGUI:
             self.log_debug("Failed to fetch price data.")
 
     def get_api_url(self):
-        # Get current Sweden local date
         sweden_tz = pytz.timezone("Europe/Stockholm")
         current_time_sweden = datetime.now(sweden_tz)
         year = current_time_sweden.year
@@ -208,16 +200,12 @@ class MinerGUI:
 
     def stop_miner(self):
         if self.program_process and self.program_process.poll() is None:
-            self.program_process.terminate()  # Send a termination signal to the process
-            self.program_process.wait()      # Wait for the process to terminate
+            self.program_process.terminate()
+            self.program_process.wait()
             self.program_process = None
             self.log_debug("Miner stopped.")
         else:
             self.log_debug("Miner is not running.")
-
-    def quit_application(self):
-        self.stop_polling()
-        self.root.quit()
 
 if __name__ == "__main__":
     root = tk.Tk()

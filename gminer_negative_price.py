@@ -1,10 +1,10 @@
 import requests
 import subprocess
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 import pytz
 import tkinter as tk
-from tkinter import messagebox, filedialog, ttk
+from tkinter import ttk, messagebox, filedialog
 from threading import Thread
 
 BASE_API_URL = "https://www.elprisetjustnu.se/api/v1/prices/{year}/{month_day}_{region}.json"
@@ -16,7 +16,13 @@ class MinerGUI:
         self.root.geometry("800x600")
         self.root.configure(bg="#2d2d2d")
 
-        # Variables
+        # Add a themed style
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("TButton", padding=6, relief="flat", background="#4472C4", foreground="white")
+        style.configure("TLabel", font=("Arial", 10), padding=5)
+
+        # Initialize variables
         self.program_path = tk.StringVar(value="./miner")
         self.algo = tk.StringVar(value="kawpow")
         self.server = tk.StringVar(value="kawpow.auto.nicehash.com:9200")
@@ -38,57 +44,61 @@ class MinerGUI:
             "octopus+kheavyhash", "octopus+sha512_256d", "octopus+ironfish",
             "autolykos2+kheavyhash", "autolykos2+sha512_256d", "sha512_256d", "ironfish", "karlsenhash"
         ]
-
+        
+        # Create GUI widgets
         self.create_widgets()
 
     def create_widgets(self):
-        # Notebook for Tabs
-        notebook = ttk.Notebook(self.root)
-        main_tab = ttk.Frame(notebook)
-        api_tab = ttk.Frame(notebook)
-        notebook.add(main_tab, text="Main")
-        notebook.add(api_tab, text="API")
-        notebook.pack(expand=True, fill="both")
+        main_frame = ttk.Frame(self.root, padding="10")
+        main_frame.grid(row=0, column=0, sticky="nsew")
 
-        # Main Tab Widgets
-        self.create_entry(main_tab, "Path to Miner:", self.program_path, 0, browse=True)
-        self.create_dropdown(main_tab, "Algorithm:", self.algo, self.algorithms, 1)
-        self.create_entry(main_tab, "Server:", self.server, 2)
-        self.create_entry(main_tab, "User:", self.user, 3)
-        self.create_entry(main_tab, "Password:", self.password, 4)
-        self.create_dropdown(main_tab, "Region:", self.region, ["SE1", "SE2", "SE3", "SE4"], 5)
-        self.create_entry(main_tab, "Start Mining When Price is Under (SEK/kWh):", self.start_mining_price, 6)
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
 
-        tk.Button(main_tab, text="Start", command=self.start_polling, bg="#4caf50", fg="#ffffff").grid(row=7, column=0, pady=10)
-        tk.Button(main_tab, text="Stop", command=self.stop_polling, bg="#f44336", fg="#ffffff").grid(row=7, column=1, pady=10)
+        ttk.Label(main_frame, text="Path to GMiner:").grid(row=0, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.program_path, width=40).grid(row=0, column=1, padx=5)
+        ttk.Button(main_frame, text="Browse", command=self.browse_program_path).grid(row=0, column=2, padx=5)
 
-        tk.Label(main_tab, text="Debug Output:", fg="#ffffff", bg="#2d2d2d").grid(row=8, column=0, sticky="nw")
-        self.debug_output = tk.Text(main_tab, height=10, width=80, state="disabled", bg="#1e1e1e", fg="#ffffff")
-        self.debug_output.grid(row=9, column=0, columnspan=3, pady=10)
+        ttk.Label(main_frame, text="Algorithm:").grid(row=1, column=0, sticky="w")
+        ttk.OptionMenu(main_frame, self.algo, self.algo.get(), *self.algorithms).grid(row=1, column=1, padx=5, sticky="w")
 
-        # API Tab Widgets
-        self.create_entry(api_tab, "API Bind Address (ip:port):", self.api_bind, 0)
+        ttk.Label(main_frame, text="Server:").grid(row=2, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.server, width=40).grid(row=2, column=1, padx=5, sticky="w")
 
-    def create_entry(self, parent, label, variable, row, browse=False):
-        tk.Label(parent, text=label, fg="#ffffff", bg="#2d2d2d").grid(row=row, column=0, sticky="w")
-        entry = tk.Entry(parent, textvariable=variable, width=50)
-        entry.grid(row=row, column=1, pady=5)
-        if browse:
-            tk.Button(parent, text="Browse", command=self.browse_program_path, bg="#4caf50", fg="#ffffff").grid(row=row, column=2, padx=5)
+        ttk.Label(main_frame, text="User:").grid(row=3, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.user, width=40).grid(row=3, column=1, padx=5, sticky="w")
 
-    def create_dropdown(self, parent, label, variable, options, row):
-        tk.Label(parent, text=label, fg="#ffffff", bg="#2d2d2d").grid(row=row, column=0, sticky="w")
-        tk.OptionMenu(parent, variable, *options).grid(row=row, column=1, pady=5, sticky="w")
+        ttk.Label(main_frame, text="Password:").grid(row=4, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.password, width=40).grid(row=4, column=1, padx=5, sticky="w")
+
+        ttk.Label(main_frame, text="Region:").grid(row=5, column=0, sticky="w")
+        ttk.OptionMenu(main_frame, self.region, self.region.get(), "SE1", "SE2", "SE3", "SE4").grid(row=5, column=1, padx=5, sticky="w")
+
+        ttk.Label(main_frame, text="Custom Price (SEK/kWh):").grid(row=6, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.custom_price, width=15).grid(row=6, column=1, padx=5, sticky="w")
+
+        ttk.Label(main_frame, text="Start Mining Price (SEK/kWh):").grid(row=7, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.start_mining_price, width=15).grid(row=7, column=1, padx=5, sticky="w")
+
+        ttk.Label(main_frame, text="API Bind:").grid(row=8, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.api_bind, width=20).grid(row=8, column=1, padx=5, sticky="w")
+
+        tk.Button(main_frame, text="Start", command=self.start_polling, bg="#4caf50", fg="#ffffff").grid(row=10, column=0, pady=10)
+        tk.Button(main_frame, text="Stop", command=self.stop_polling, bg="#f44336", fg="#ffffff").grid(row=10, column=1, pady=10)
+
+        ttk.Label(main_frame, text="Debug Output:").grid(row=11, column=0, sticky="nw")
+        self.debug_output = tk.Text(main_frame, height=10, width=70, state="normal", bg="#F0F0F0", fg="black")
+        self.debug_output.grid(row=12, column=0, columnspan=3, sticky="w", pady=10)
 
     def browse_program_path(self):
-        path = filedialog.askopenfilename(title="Select Miner executable")
+        path = filedialog.askopenfilename(title="Select GMiner executable")
         if path:
             self.program_path.set(path)
 
     def log_debug(self, message):
         self.debug_output.configure(state="normal")
         self.debug_output.insert(tk.END, f"{message}\n")
-        self.debug_output.configure(state="disabled")
+        self.debug_output.configure(state="normal")
         self.debug_output.see(tk.END)
 
     def start_polling(self):
@@ -108,22 +118,11 @@ class MinerGUI:
             self.check_and_start_miner()
             time.sleep(self.poll_interval)
 
-    def check_and_start_miner(self):
-        api_url = self.get_api_url()
-        self.log_debug(f"Fetching prices from: {api_url}")
-        prices = self.fetch_prices(api_url)
-        if prices or self.custom_price.get():
-            current_price = self.get_current_hour_price(prices)
-            if current_price is not None:
-                self.log_debug(f"Current price: {current_price} SEK/kWh")
-                if current_price < self.start_mining_price.get():
-                    self.start_miner()
-                else:
-                    self.stop_miner()
-            else:
-                self.log_debug("Could not find price for the current hour.")
-        else:
-            self.log_debug("Failed to fetch price data.")
+    def get_api_url(self):
+        now = datetime.now()
+        year = now.year
+        month_day = now.strftime("%m-%d")
+        return BASE_API_URL.format(year=year, month_day=month_day, region=self.region.get())
 
     def fetch_prices(self, api_url):
         try:
@@ -142,30 +141,34 @@ class MinerGUI:
             except ValueError:
                 self.log_debug("Invalid custom price entered. Using API data instead.")
 
-        # Get current Sweden local time
         sweden_tz = pytz.timezone("Europe/Stockholm")
         current_time_sweden = datetime.now(sweden_tz)
 
         for price_entry in prices:
             start_time = datetime.fromisoformat(price_entry["time_start"]).astimezone(sweden_tz)
             end_time = datetime.fromisoformat(price_entry["time_end"]).astimezone(sweden_tz)
-
             if start_time <= current_time_sweden < end_time:
                 return price_entry.get("SEK_per_kWh", None)
 
         return None
 
-    def get_api_url(self):
-        now = datetime.now()
-        year = now.year
-        month_day = now.strftime("%m-%d")
-        return BASE_API_URL.format(year=year, month_day=month_day, region=self.region.get())
+    def check_and_start_miner(self):
+        api_url = self.get_api_url()
+        self.log_debug(f"Fetching prices from: {api_url}")
+        prices = self.fetch_prices(api_url)
+        if prices or self.custom_price.get():
+            current_price = self.get_current_hour_price(prices)
+            if current_price is not None:
+                self.log_debug(f"Current price: {current_price} SEK/kWh")
+                if current_price < self.start_mining_price.get():
+                    self.start_miner()
+                else:
+                    self.stop_miner()
 
     def start_miner(self):
-        if self.program_process and self.program_process.poll() is None:
+        if self.program_process:
             self.log_debug("Miner is already running.")
             return
-
         command = [
             self.program_path.get(),
             "-a", self.algo.get(),
@@ -173,19 +176,18 @@ class MinerGUI:
             "-u", self.user.get(),
             "--api", self.api_bind.get()
         ]
-
         try:
             self.program_process = subprocess.Popen(command)
-            self.log_debug(f"Miner started with command: {' '.join(command)}")
+            self.log_debug(f"GMiner started with command: {' '.join(command)}")
         except Exception as e:
             self.log_debug(f"Failed to start miner: {e}")
 
     def stop_miner(self):
-        if self.program_process and self.program_process.poll() is None:
+        if self.program_process:
             self.program_process.terminate()
             self.program_process.wait()
             self.program_process = None
-            self.log_debug("Miner stopped.")
+            self.log_debug("GMiner stopped.")
         else:
             self.log_debug("Miner is not running.")
 

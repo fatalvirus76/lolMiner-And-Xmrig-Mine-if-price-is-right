@@ -13,7 +13,7 @@ class MinerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("XMRig Controller")
-        self.root.geometry("800x650")
+        self.root.geometry("680x600")
 
         # Add a themed style
         style = ttk.Style()
@@ -22,7 +22,7 @@ class MinerGUI:
         style.configure("TLabel", font=("Arial", 10), padding=5)
 
         # Initialize variables
-        self.program_path = tk.StringVar(value="/home/anonymous/Programs/xmrig-6.21.3/xmrig")
+        self.program_path = tk.StringVar(value="./xmrig")
         self.algo = tk.StringVar(value="randomx")
         self.pool = tk.StringVar(value="stratum+tcp://randomxmonero.auto.nicehash.com:9200")
         self.user = tk.StringVar(value="38bj4uu8uDsnC5NjoeGb8TMviBCEtMiaet.CPU1")
@@ -30,6 +30,8 @@ class MinerGUI:
         self.region = tk.StringVar(value="SE3")
         self.custom_price = tk.StringVar(value="")
         self.start_mining_price = tk.DoubleVar(value=0)
+        self.api_host = tk.StringVar(value="0.0.0.0")
+        self.api_port = tk.StringVar(value="4444")
         self.poll_interval = 300
         self.program_process = None
         self.polling = False
@@ -41,42 +43,46 @@ class MinerGUI:
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
 
-        # Configure grid weights
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
 
         ttk.Label(main_frame, text="Path to XMRig:").grid(row=0, column=0, sticky="w")
-        path_entry = ttk.Entry(main_frame, textvariable=self.program_path, width=50)
-        path_entry.grid(row=0, column=1, padx=5)
+        ttk.Entry(main_frame, textvariable=self.program_path, width=40).grid(row=0, column=1, padx=5)
         ttk.Button(main_frame, text="Browse", command=self.browse_program_path).grid(row=0, column=2, padx=5)
 
         ttk.Label(main_frame, text="Algorithm:").grid(row=1, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.algo).grid(row=1, column=1, padx=5)
+        ttk.Entry(main_frame, textvariable=self.algo, width=30).grid(row=1, column=1, padx=5, sticky="w")
 
         ttk.Label(main_frame, text="Pool:").grid(row=2, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.pool, width=50).grid(row=2, column=1, padx=5, columnspan=2)
+        ttk.Entry(main_frame, textvariable=self.pool, width=40).grid(row=2, column=1, padx=5, sticky="w")
 
         ttk.Label(main_frame, text="User:").grid(row=3, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.user, width=50).grid(row=3, column=1, padx=5, columnspan=2)
+        ttk.Entry(main_frame, textvariable=self.user, width=40).grid(row=3, column=1, padx=5, sticky="w")
 
         ttk.Label(main_frame, text="Threads:").grid(row=4, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.threads).grid(row=4, column=1, padx=5)
+        ttk.Entry(main_frame, textvariable=self.threads, width=10).grid(row=4, column=1, padx=5, sticky="w")
 
         ttk.Label(main_frame, text="Region:").grid(row=5, column=0, sticky="w")
         ttk.OptionMenu(main_frame, self.region, self.region.get(), "SE1", "SE2", "SE3", "SE4").grid(row=5, column=1, padx=5, sticky="w")
 
         ttk.Label(main_frame, text="Custom Price (SEK/kWh):").grid(row=6, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.custom_price, width=50).grid(row=6, column=1, padx=5)
+        ttk.Entry(main_frame, textvariable=self.custom_price, width=15).grid(row=6, column=1, padx=5, sticky="w")
 
-        ttk.Label(main_frame, text="Start Mining When Price is Under (SEK/kWh):").grid(row=7, column=0, sticky="w")
-        ttk.Entry(main_frame, textvariable=self.start_mining_price, width=50).grid(row=7, column=1, padx=5)
+        ttk.Label(main_frame, text="Start Mining Price (SEK/kWh):").grid(row=7, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.start_mining_price, width=15).grid(row=7, column=1, padx=5, sticky="w")
 
-        ttk.Button(main_frame, text="Start", command=self.start_polling).grid(row=8, column=0, pady=10)
-        ttk.Button(main_frame, text="Stop", command=self.stop_polling).grid(row=8, column=1, pady=10)
+        ttk.Label(main_frame, text="API Host:").grid(row=8, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.api_host, width=20).grid(row=8, column=1, padx=5, sticky="w")
 
-        ttk.Label(main_frame, text="Debug Output:").grid(row=9, column=0, sticky="nw")
-        self.debug_output = tk.Text(main_frame, height=15, width=85, state="normal", bg="#F0F0F0", fg="black")
-        self.debug_output.grid(row=10, column=0, columnspan=3, sticky="w", pady=10)
+        ttk.Label(main_frame, text="API Port:").grid(row=9, column=0, sticky="w")
+        ttk.Entry(main_frame, textvariable=self.api_port, width=10).grid(row=9, column=1, padx=5, sticky="w")
+
+        tk.Button(main_frame, text="Start", command=self.start_polling, bg="#4caf50", fg="#ffffff").grid(row=10, column=0, pady=10)
+        tk.Button(main_frame, text="Stop", command=self.stop_polling, bg="#f44336", fg="#ffffff").grid(row=10, column=1, pady=10)
+
+        ttk.Label(main_frame, text="Debug Output:").grid(row=11, column=0, sticky="nw")
+        self.debug_output = tk.Text(main_frame, height=10, width=70, state="normal", bg="#F0F0F0", fg="black")
+        self.debug_output.grid(row=12, column=0, columnspan=3, sticky="w", pady=10)
 
     def browse_program_path(self):
         path = filedialog.askopenfilename(title="Select XMRig executable")
@@ -162,7 +168,9 @@ class MinerGUI:
             "-a", self.algo.get(),
             "-o", self.pool.get(),
             "-u", self.user.get(),
-            "--threads", self.threads.get()
+            "--threads", self.threads.get(),
+            "--http-host", self.api_host.get(),
+            "--http-port", self.api_port.get()
         ]
         try:
             self.program_process = subprocess.Popen(command)

@@ -15,7 +15,7 @@ class MinerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("lolMiner Controller")
-        self.root.geometry("880x720")
+        self.root.geometry("800x640")
 
         # Add a themed style
         style = ttk.Style()
@@ -84,8 +84,8 @@ class MinerGUI:
         ttk.Label(main_frame, text="Start Mining When Price is Under (SEK/kWh):").grid(row=7, column=0, sticky="w")
         ttk.Entry(main_frame, textvariable=self.start_mining_price, width=50).grid(row=7, column=1, padx=5)
 
-        ttk.Button(main_frame, text="Start", command=self.start_polling).grid(row=8, column=0, pady=10)
-        ttk.Button(main_frame, text="Stop", command=self.stop_polling).grid(row=8, column=1, pady=10)
+        tk.Button(main_frame, text="Start", command=self.start_polling, bg="#4caf50", fg="#ffffff").grid(row=8, column=0, pady=10)
+        tk.Button(main_frame, text="Stop", command=self.stop_polling, bg="#f44336", fg="#ffffff").grid(row=8, column=1, pady=10)
 
         ttk.Label(main_frame, text="Debug Output:").grid(row=9, column=0, sticky="nw")
         self.debug_output = tk.Text(main_frame, height=15, width=85, state="normal", bg="#F0F0F0", fg="black")
